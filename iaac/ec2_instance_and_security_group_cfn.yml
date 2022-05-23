@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Security group setup 
+Resources:
+  ExampleUdacitySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Start of IAAC Sec group"
+      GroupName: batch1
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+      VpcId: 'vpc-0ccf1944bb6908ede'
+      Tags:
+        - Key: name
+          Value: FirstSecIAACGroup
+  EC2AutoInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: 'ami-0022f774911c1d690'
+      InstanceType: t2.micro  
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: true
+          DeviceIndex: 0
+          SubnetId: subnet-0cf1cf817a2889b7e
+          GroupSet: 
+            - Ref: "ExampleUdacitySecurityGroup"
+      UserData: 
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          sudo yum install -y httpd
+          sudo systemctl start httpd
+          sudo systemctl enable httpd
