@@ -2,8 +2,48 @@ Description: "SERVER Resources"
 Parameters:
   EnvironmentName:
     Type: String
-  VpcId:
-    Type: String
 Resources:
+  LBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: LBSG
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+      VpcId: 
+        Fn::ImportValue:
+          !Sub ${EnvironmentName}-VPCID
+      Tags:
+        - Key: Name
+          Value: Load balance SG
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: WebSG
+      SecurityGroupEgress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+        - CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+      VpcId: !Sub ${EnvironmentName}-VPCID
+      Tags:
+        - Key: Name
+          Value: WebServer Instance SecGrp
   DevEC2AutoScaleGroup:
     Type: AWS::EC2::AutoScale
