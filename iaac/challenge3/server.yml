@@ -1,0 +1,9 @@
+Description: "SERVER Resources"
+Parameters:
+  EnvironmentName:
+    Type: String
+  VpcId:
+    Type: String
+Resources:
+  DevEC2AutoScaleGroup:
+    Type: AWS::EC2::AutoScale
