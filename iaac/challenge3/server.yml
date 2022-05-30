@@ -11,8 +11,8 @@ Resources:
       SecurityGroupEgress:
         - CidrIp: 0.0.0.0/0
           IpProtocol: tcp
-          FromPort: 0
-          ToPort: 65535
+          FromPort: 80
+          ToPort: 80
       SecurityGroupIngress:
         - CidrIp: 0.0.0.0/0
           IpProtocol: tcp
@@ -110,7 +110,7 @@ Resources:
       Port: 80
       Protocol: HTTP
       LoadBalancerArn: !Ref DevLB
-      DefaultAction:
+      DefaultActions:
         - Type: forward
           TargetGroupArn: !Ref DevTargetGroup
   LBListerner1Rule:
