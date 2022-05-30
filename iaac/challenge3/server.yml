@@ -41,9 +41,49 @@ Resources:
           IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-      VpcId: !Sub ${EnvironmentName}-VPCID
+      VpcId: 
+        Fn::ImportValue:
+          !Sub ${EnvironmentName}-VPCID
       Tags:
         - Key: Name
           Value: WebServer Instance SecGrp
-  DevEC2AutoScaleGroup:
-    Type: AWS::EC2::AutoScale
+  
+  DevServerLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            # Install docker
+            apt-get update
+            apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+            add-apt-repository \
+            "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+            $(lsb_release -cs) \
+            stable"
+            apt-get update
+            apt-get install -y docker-ce
+            usermod -aG docker ubuntu
+            docker run -p 8080:80 tomcat:8.0
+        SecurityGroups:
+          - !Ref WebSecurityGroup
+        ImageId: ami-00ddb0e5626798373
+        InstanceType: 't3.medium'
+        BlockSizeMappings:
+          - DeviceName: '/dev/sdk'
+            Ebs:
+              VolumeSize: 10
+
+  DevServerGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn: DevServerLaunchConfig
+    Properties:
+        VPCZoneIdentifier:
+          - Fn::ImportValue:
+              !Sub ${EnvironmentName}-Priv-Nets
+        LaunchConfigurationName: 
+          Ref: DevServerLaunchConfig
+        MinSize: 2
+        MaxSize: 4
+

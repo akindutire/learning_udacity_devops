@@ -80,11 +80,17 @@ Resources:
     DependsOn: InternetGatewayAttachment
     Properties:
       Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} EIP1
   NAT2EIP:
     Type: AWS::EC2::EIP
     DependsOn: InternetGatewayAttachment
     Properties:
       Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} EIP2
       
   PubSubnet1NAT1:
     Type: AWS::EC2::NatGateway
