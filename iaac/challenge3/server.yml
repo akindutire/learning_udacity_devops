@@ -7,6 +7,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: LBSG
+      GroupDescription: 'Security groups for app load balancers'
       SecurityGroupEgress:
         - CidrIp: 0.0.0.0/0
           IpProtocol: tcp
@@ -27,6 +28,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: WebSG
+      GroupDescription: 'Security groups for web apps or ec2 instances'
       SecurityGroupEgress:
         - CidrIp: 0.0.0.0/0
           IpProtocol: tcp
@@ -68,13 +70,62 @@ Resources:
             docker run -p 8080:80 tomcat:8.0
         SecurityGroups:
           - !Ref WebSecurityGroup
-        ImageId: ami-00ddb0e5626798373
-        InstanceType: 't3.medium'
-        BlockSizeMappings:
+        ImageId: 'ami-09d56f8956ab235b3'
+        InstanceType: t3.medium
+        BlockDeviceMappings:
           - DeviceName: '/dev/sdk'
             Ebs:
-              VolumeSize: 10
+              VolumeSize: 8
+              DeleteOnTermination: true
 
+  DevLB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets:
+        - Fn::ImportValue: !Sub ${EnvironmentName}-Pub-Net1
+        - Fn::ImportValue: !Sub ${EnvironmentName}-Pub-Net2
+      SecurityGroups:
+        - !Ref LBSecurityGroup
+
+  DevTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: DevLB
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 8
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId: 
+        Fn::ImportValue:
+          !Sub ${EnvironmentName}-VPCID
+
+  LBListener1:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: DevTargetGroup
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      LoadBalancerArn: !Ref DevLB
+      DefaultAction:
+        - Type: forward
+          TargetGroupArn: !Ref DevTargetGroup
+  LBListerner1Rule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    DependsOn: LBListener1
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref DevTargetGroup
+      Conditions:
+        - Field: path-pattern
+          Values: [/]
+      ListenerArn: !Ref LBListener1
+      Priority: 1
+          
   DevServerGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     DependsOn: DevServerLaunchConfig
@@ -82,8 +133,9 @@ Resources:
         VPCZoneIdentifier:
           - Fn::ImportValue:
               !Sub ${EnvironmentName}-Priv-Nets
-        LaunchConfigurationName: 
-          Ref: DevServerLaunchConfig
-        MinSize: 2
+        LaunchConfigurationName: !Ref DevServerLaunchConfig 
+        MinSize: 1
         MaxSize: 4
+        TargetGroupARNs: 
+          - !Ref DevTargetGroup
 
