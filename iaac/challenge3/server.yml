@@ -72,6 +72,9 @@ Resources:
           - !Ref WebSecurityGroup
         ImageId: 'ami-09d56f8956ab235b3'
         InstanceType: t3.medium
+        # IamInstanceProfile: !Ref EC2InstanceProfile
+        #KeyName: test
+        #AssociatePublicIpAddress: true
         BlockDeviceMappings:
           - DeviceName: '/dev/sdk'
             Ebs:
